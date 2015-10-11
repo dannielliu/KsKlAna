@@ -221,7 +221,18 @@ int FitHist(TH1D *&hist, double mean=0, double sigma=0, double* par=0, double *p
     sprintf(item,"spectrum_%s",sfx);
     c1->SetName(item);
     c1->Write();
-    
+
+    if (par!=0) {
+      par[0] = R_sig.getVal();
+      par[1] = R_mean.getVal();
+      par[2] = R_sigma.getVal();
+    }
+    if (pare!=0){
+      pare[0] = R_sig.getError();
+      pare[1] = R_mean.getError();
+      pare[2] = R_sigma.getError();
+    }
+
     delete xframe;
     return Npar;
 }

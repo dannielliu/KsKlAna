@@ -308,6 +308,7 @@ Int_t Ks_info::Cut(Long64_t entry)
 #include <TCanvas.h>
 #include <TLorentzVector.h>
 #include <iostream>
+#include <fstream>
 using namespace std;
 
 #include "CommonFunc.h"
@@ -372,6 +373,16 @@ void Ks_info::Loop(TFile* outfile, vector<TH1D*> h1col, const char* inname, vect
    sprintf(name,"hMKs_%s",getPureName2(inname));
    TH1D *hMKs = new TH1D(name,name,100,0.45,0.55);
 
+   sprintf(name,"hchi2_%s",getPureName2(inname));
+   TH1D *hchi2 = new TH1D(name,name,200, 0,200);
+
+   sprintf(name,"hpKs_%s",getPureName2(inname));
+   TH1D *hpKs = new TH1D(name,name,200,0,1.5*Ebeam/2.0);
+   sprintf(name,"hpKsL_%s",getPureName2(inname));
+   TH1D *hpKsL = new TH1D(name,name,200,0,1.5*Ebeam/2.0);
+   sprintf(name,"hpKsU_%s",getPureName2(inname));
+   TH1D *hpKsU = new TH1D(name,name,200,0,1.5*Ebeam/2.0);
+   
    TLorentzVector pip, pim;
    double mpi = 0.13957;
    double mk0 = 0.497614;
@@ -383,6 +394,7 @@ void Ks_info::Loop(TFile* outfile, vector<TH1D*> h1col, const char* inname, vect
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;
+      hchi2->Fill(m_chisq1c);
 
       pip.SetVectMag(TVector3(pippx,pippy,pippz),mpi);
       pim.SetVectMag(TVector3(pimpx,pimpy,pimpz),mpi);
@@ -409,8 +421,8 @@ void Ks_info::Loop(TFile* outfile, vector<TH1D*> h1col, const char* inname, vect
       hAngpip->Fill(angpip);
       hAngpim->Fill(angpim);
 
-      hPpippim->Fill(Ppippim);
       hMpippim->Fill(Mpippim);
+      hPpippim->Fill(Ppippim);
       hEpippim->Fill(Epippim);
 
       hAngInee->Fill(ang);
@@ -426,10 +438,21 @@ void Ks_info::Loop(TFile* outfile, vector<TH1D*> h1col, const char* inname, vect
 	  }
 	}
       }
+      if (m_decayL/m_decayLerr<5) continue;
+      if (ang<40 || ang>120 || angInKs<160) continue;
+      if (Mpippim>0.490 && Mpippim<0.505) hpKs->Fill(Ppippim);
+      if (Mpippim>0.475 && Mpippim<0.490) hpKsL->Fill(Ppippim);
+      if (Mpippim>0.505 && Mpippim<0.520) hpKsU->Fill(Ppippim);
    }
 
    outfile->cd();
-   int Npar = FitHist(hMKs,mk0,0,0,0,getPureName2(inname));
+   double par[10];
+   double parerr[10];
+   double &Nsig = par[0];
+   double &Nsigerr = parerr[0];
+   int Npar = FitHist(hMKs,mk0,0,par,parerr,getPureName2(inname));
+   ofstream pars("pars.txt",ios::app);
+   pars << getPureName2(inname) << "\t" << Nsig << "\t" << Nsigerr << endl;
 
    outfile->WriteTObject(hAngpip);
    outfile->WriteTObject(hAngpim);
@@ -441,6 +464,11 @@ void Ks_info::Loop(TFile* outfile, vector<TH1D*> h1col, const char* inname, vect
    outfile->WriteTObject(hAngInKs);
    outfile->WriteTObject(hPpip);
    outfile->WriteTObject(hPpim);
+    
+   outfile->WriteTObject(hchi2);
+   outfile->WriteTObject(hpKs);
+   outfile->WriteTObject(hpKsL);
+   outfile->WriteTObject(hpKsU);
    
    h1col.push_back(hAngpip);
    h1col.push_back(hAngpim);
